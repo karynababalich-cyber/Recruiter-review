@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Performance Review 360° — Рекрутер</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8F7F4;--bg2:#FFFFFF;--bg3:#F1EFE8;
+  --text:#1A1A18;--text2:#5F5E5A;--text3:#888780;
+  --border:#E0DED6;--border2:#D3D1C7;
+  --purple:#7F77DD;--purple-dark:#534AB7;--purple-light:#EEEDFE;--purple-text:#3C3489;
+  --teal:#1D9E75;--teal-dark:#0F6E56;--teal-light:#E1F5EE;--teal-text:#085041;
+  --amber:#BA7517;--amber-dark:#854F0B;--amber-light:#FAEEDA;--amber-text:#633806;
+  --red:#E24B4A;--red-light:#FCEBEB;--red-text:#791F1F;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+.app-header{background:var(--bg2);border-bottom:0.5px solid var(--border2);padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.app-logo{width:32px;height:32px;background:var(--purple);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0}
+.app-title{font-size:15px;font-weight:600;color:var(--text)}
+.app-sub{font-size:12px;color:var(--text3)}
+.wrapper{max-width:800px;margin:0 auto;padding:20px 16px}
+.tabs{display:flex;border-bottom:0.5px solid var(--border2);margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:9px 13px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-0.5px;display:flex;align-items:center;gap:5px;font-family:inherit;white-space:nowrap;transition:color .15s}
+.tab:hover{color:var(--text)}.tab.active{color:var(--purple-dark);border-bottom-color:var(--purple)}
+.page{display:none}.page.active{display:block}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:14px}
+.card-h{font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin-bottom:4px}
+.field label{font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;height:36px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--purple)}
+.field textarea{height:62px;padding:8px 10px;resize:vertical}
+.divider{height:0.5px;background:var(--border);margin:12px 0}
+.sec-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 7px}
+.kt{width:100%;border-collapse:collapse;table-layout:fixed}
+.kt th{font-size:11px;font-weight:600;color:var(--text3);text-align:left;padding:0 5px 7px;border-bottom:0.5px solid var(--border)}
+.kt th:not(:first-child){text-align:center}
+.kt td{padding:6px 5px;vertical-align:middle;border-bottom:0.5px solid var(--border)}
+.kt tr:last-child td{border-bottom:none}
+.ni{height:30px;padding:0 6px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:13px;text-align:center;font-family:inherit;width:64px;outline:none}
+.ni:focus{border-color:var(--purple)}
+.di{height:30px;padding:0 6px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:12px;font-family:inherit;width:100%;outline:none}
+.kl{font-size:13px;font-weight:500;color:var(--text)}.ks{font-size:11px;color:var(--text3);margin-top:1px}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;min-width:46px;text-align:center}
+.pg{background:var(--teal-light);color:var(--teal-text)}.po{background:var(--purple-light);color:var(--purple-text)}
+.pl{background:var(--amber-light);color:var(--amber-text)}.pb{background:var(--red-light);color:var(--red-text)}
+.btn{height:36px;padding:0 16px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:inherit;transition:all .15s}
+.btn:hover{background:var(--bg3)}.btn.primary{background:var(--purple);color:#fff;border-color:var(--purple-dark)}.btn.primary:hover{background:var(--purple-dark)}
+.btn.teal{background:var(--teal);color:#fff;border-color:var(--teal-dark)}.btn.teal:hover{background:var(--teal-dark)}
+.btn.amber{background:var(--amber);color:#fff;border-color:var(--amber-dark)}.btn.amber:hover{background:var(--amber-dark)}
+.btn.pdf{background:var(--teal);color:#fff;border-color:var(--teal-dark)}.btn.pdf:hover{background:var(--teal-dark)}
+.btn-sm{height:26px;width:26px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;flex-shrink:0}
+.btn-sm:hover{background:var(--bg3)}
+.btn-add{height:28px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text3);font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
+.btn-add:hover{background:var(--bg3)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.adapt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.adapt-card{background:var(--bg3);border-radius:var(--radius);padding:12px 14px}
+.adapt-card label{font-size:11px;font-weight:600;color:var(--text3);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.adapt-card input[type=number]{width:64px;height:30px;padding:0 8px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:14px;font-weight:600;text-align:center;font-family:inherit;outline:none}
+.adapt-card textarea{width:100%;height:52px;padding:6px 8px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:12px;resize:vertical;font-family:inherit;margin-top:6px;outline:none}
+.sb{margin-bottom:14px;padding-bottom:14px;border-bottom:0.5px solid var(--border)}.sb:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.stars{display:flex;gap:5px;margin-bottom:5px}
+.sbtn{width:34px;height:34px;border-radius:var(--radius);border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px;font-weight:600;color:var(--text3);display:flex;align-items:center;justify-content:center;font-family:inherit;transition:all .15s}
+.sbtn.sel{background:var(--purple);color:#fff;border-color:var(--purple-dark)}
+.slabels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:7px}
+.stxt{width:100%;height:46px;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:12px;resize:vertical;font-family:inherit;outline:none}
+.stxt:focus{border-color:var(--purple)}
+.ttf-summ{background:var(--bg3);border-radius:var(--radius);padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.comm-block{background:var(--bg3);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px}
+.comm-block:last-of-type{margin-bottom:0}
+.comm-total{background:var(--bg3);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.ghost-vac{background:var(--bg3);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:10px;border:0.5px solid var(--border)}
+.gst-row{display:grid;grid-template-columns:26px 1fr 62px;gap:8px;align-items:start}
+.gcmt{width:100%;padding:6px 9px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:12px;font-family:inherit;resize:vertical;min-height:40px;line-height:1.4;margin-top:4px;outline:none}
+.gcmt:focus{border-color:var(--purple)}
+.gcmt::placeholder{color:var(--text3)}
+.anon-note{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px}
+.mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(98px,1fr));gap:10px;margin-bottom:14px}
+.mc{background:var(--bg3);border-radius:var(--radius);padding:11px 14px;text-align:center}
+.ml{font-size:11px;font-weight:500;color:var(--text3);margin-bottom:3px}.mv{font-size:21px;font-weight:700;color:var(--text)}.ms{font-size:11px;color:var(--text3);margin-top:2px}
+.rsec{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:14px}
+.r-head{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.score-big{font-size:48px;font-weight:700;line-height:1}
+.krr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border);flex-wrap:wrap}
+.krr:last-child{border-bottom:none;padding-bottom:0}
+.krn{flex:1;min-width:110px;font-size:13px;font-weight:500;color:var(--text)}
+.btrack{flex:1;min-width:50px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.bfill{height:5px;border-radius:3px;background:var(--purple)}
+.sr2{padding:8px 0;border-bottom:0.5px solid var(--border)}.sr2:last-child{border-bottom:none;padding-bottom:0}
+.ssh{display:flex;gap:3px}.ss{width:14px;height:14px;border-radius:2px;background:var(--bg3)}.ss.on{background:var(--purple)}
+.ri{display:flex;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border);font-size:13px}.ri:last-child{border-bottom:none;padding-bottom:0}
+.ric{flex-shrink:0;width:26px;height:26px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:13px}
+.ric.gr{background:var(--purple-light);color:var(--purple-dark)}.ric.st{background:var(--teal-light);color:var(--teal-text)}.ric.wn{background:var(--amber-light);color:var(--amber-text)}
+.rt b{font-weight:600;color:var(--text)}.rt p{color:var(--text3);margin-top:2px;font-size:12px}
+.hi{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.cw{position:relative;height:240px;margin-top:8px}
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.avg-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.avg-bar-label{font-size:12px;color:var(--text3);min-width:170px}
+.avg-bar-track{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.avg-bar-fill{height:6px;border-radius:3px}
+.avg-bar-val{font-size:12px;font-weight:600;min-width:28px;text-align:right}
+.ok-note{background:var(--teal-light);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--teal-text);margin-top:10px}
+.type-b{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px}
+.tb-lin{background:var(--purple-light);color:var(--purple-text)}.tb-cl{background:var(--amber-light);color:var(--amber-text)}
+.grvac{padding:7px 0;border-bottom:0.5px solid var(--border)}.grvac:last-child{border-bottom:none;padding-bottom:0}
+.src-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+@media(max-width:600px){.two-col,.adapt-grid,.grid4{grid-template-columns:1fr}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app-header">
+  <div class="app-logo">👥</div>
+  <div>
+    <div class="app-title">Performance Review 360°</div>
+    <div class="app-sub">Ежемесячная оценка рекрутера</div>
+  </div>
+</div>
+<div class="wrapper">
+<div class="tabs">
+  <button class="tab active" onclick="goTab('form')">📋 Руководитель</button>
+  <button class="tab" onclick="goTab('peer')">👥 Коллеги (анон.)</button>
+  <button class="tab" onclick="goTab('hm')">🏢 Hiring Manager</button>
+  <button class="tab" id="tab-res" style="display:none" onclick="goTab('result')">📊 Результаты 360°</button>
+  <button class="tab" onclick="goTab('history')">🕐 Архив</button>
+</div>
+
+<!-- ФОРМА РУКОВОДИТЕЛЯ -->
+<div id="page-form" class="page active">
+  <div class="card">
+    <div class="grid4">
+      <div class="field"><label>Имя рекрутера</label><input id="f-name" type="text" placeholder="Мария К."/></div>
+      <div class="field"><label>Месяц оценки</label>
+        <select id="f-month"><option>Май 2026</option><option>Апрель 2026</option><option>Март 2026</option><option>Февраль 2026</option><option>Январь 2026</option><option>Декабрь 2025</option></select></div>
+      <div class="field"><label>Кто заполняет</label>
+        <select id="f-mode"><option value="manager">Руководитель</option><option value="self">Самооценка</option></select></div>
+      <div class="field"><label>Уровень</label><input id="f-level" type="text" placeholder="Junior / Middle / Senior"/></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📅 Встречи — план / факт</div>
+    <table class="kt"><thead><tr><th style="width:40%">Тип встречи</th><th style="width:15%">План</th><th style="width:15%">Факт</th><th style="width:15%">%</th><th style="width:15%">Оценка</th></tr></thead><tbody id="meet-tbody"></tbody></table>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💼 Вакансии и время закрытия (TTF)</div>
+    <div class="sec-lbl">Вакансии в работе и закрытые</div>
+    <table class="kt"><thead><tr><th style="width:38%">Категория</th><th style="width:16%">В работе</th><th style="width:16%">Закрыто</th><th style="width:15%">%</th><th style="width:15%">Оценка</th></tr></thead><tbody id="vac-tbody"></tbody></table>
+    <div class="divider"></div>
+    <div class="sec-lbl">Калькулятор TTF — введите даты по каждой вакансии</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto auto;gap:6px;align-items:center;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--text3)">Название вакансии</span>
+      <span style="font-size:11px;color:var(--text3);text-align:center">Открыта</span>
+      <span style="font-size:11px;color:var(--text3);text-align:center">Закрыта</span>
+      <span style="font-size:11px;color:var(--text3);text-align:center">Дней</span>
+      <span></span>
+    </div>
+    <div id="ttf-rows"></div>
+    <button class="btn-add" onclick="addTTFRow('linear')" style="margin-right:6px;margin-top:8px">+ Линейная</button>
+    <button class="btn-add" onclick="addTTFRow('clevel')" style="margin-top:8px">+ C-level</button>
+    <div class="ttf-summ">
+      <div style="text-align:center"><div style="font-size:11px;color:var(--text3);margin-bottom:3px">TTF — линейные</div><div style="font-size:20px;font-weight:700;color:var(--text)" id="ttf-avg-linear">—</div><div style="font-size:11px;color:var(--text3);margin-top:2px" id="ttf-cnt-linear">нет данных</div></div>
+      <div style="text-align:center"><div style="font-size:11px;color:var(--text3);margin-bottom:3px">TTF — C-level</div><div style="font-size:20px;font-weight:700;color:var(--text)" id="ttf-avg-clevel">—</div><div style="font-size:11px;color:var(--text3);margin-top:2px" id="ttf-cnt-clevel">нет данных</div></div>
+      <div style="grid-column:1/-1;border-top:0.5px solid var(--border);padding-top:10px;text-align:center">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Общее среднее и норматив</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
+          <div><div style="font-size:20px;font-weight:700" id="ttf-avg-all">—</div><div style="font-size:11px;color:var(--text3)">факт (дней)</div></div>
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="font-size:12px;color:var(--text3)">Норм.:</span>
+            <input class="ni" type="number" id="ttf-plan-linear" value="30" oninput="recalcTTF()" style="width:48px"/>
+            <span style="font-size:11px;color:var(--text3)">лин.</span>
+            <input class="ni" type="number" id="ttf-plan-clevel" value="60" oninput="recalcTTF()" style="width:48px"/>
+            <span style="font-size:11px;color:var(--text3)">C-lvl</span>
+          </div>
+          <div id="ttf-score-badge"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">👥 Адаптация кандидатов</div>
+    <div class="adapt-grid">
+      <div class="adapt-card"><label>Вышли на адаптацию (чел.)</label><input type="number" id="a-total" value="0" min="0" oninput="calcAdapt()"/></div>
+      <div class="adapt-card"><label>Успешно прошли адаптацию (чел.)</label><input type="number" id="a-success" value="0" min="0" oninput="calcAdapt()"/></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Результат адаптации</div><div id="adapt-result" style="font-size:14px;font-weight:500">Заполните данные выше</div></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:8px">⚠ Разбор срывов адаптации</div>
+    <div class="adapt-grid">
+      <div class="adapt-card" style="border:0.5px solid var(--purple)">
+        <label style="color:var(--purple-text)">Причины рекрутера</label>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Некачественный скрининг, несоответствие ожиданий</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:12px;color:var(--text3)">Кол-во:</span><input type="number" id="a-rec-cnt" value="0" min="0" style="width:50px;height:26px;padding:0 6px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);font-size:13px;font-weight:600;text-align:center;font-family:inherit;outline:none"/></div>
+        <textarea id="a-rec-reason" placeholder="Опишите конкретные причины..."></textarea>
+      </div>
+      <div class="adapt-card" style="border:0.5px solid var(--amber)">
+        <label style="color:var(--amber-text)">Причины HM / компании</label>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Неготовность команды, отсутствие онбординга</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:12px;color:var(--text3)">Кол-во:</span><input type="number" id="a-hm-cnt" value="0" min="0" style="width:50px;height:26px;padding:0 6px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);font-size:13px;font-weight:600;text-align:center;font-family:inherit;outline:none"/></div>
+        <textarea id="a-hm-reason" placeholder="Например: команда не была готова..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🔽 Конверсия и качество кандидатов</div>
+    <table class="kt"><thead><tr><th style="width:40%">Показатель</th><th style="width:15%">План %</th><th style="width:15%">Факт %</th><th style="width:15%">%вып.</th><th style="width:15%">Оценка</th></tr></thead><tbody id="conv-tbody"></tbody></table>
+  </div>
+
+  <div class="card">
+    <div class="card-h">💬 Коммуникация с кандидатами</div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Оценивается по трём измеримым фактам: отказы после офера, призраки по этапам воронки и жалобы HM.</p>
+
+    <div class="comm-block">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">✋ Отказы после офера</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Кандидат принял офер, но не вышел. Норма: не более 10%.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+        <div class="field"><label>Оферов выдано</label><input class="ni" type="number" id="comm-offers" value="0" min="0" style="width:80px" oninput="recalcComm()"/></div>
+        <div class="field"><label>Отказов после офера</label><input class="ni" type="number" id="comm-offer-rej" value="0" min="0" style="width:80px" oninput="recalcComm()"/></div>
+        <div style="text-align:center;padding-bottom:4px"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">% отказов</div><div id="comm-offer-pct" style="font-size:20px;font-weight:700;color:var(--text3)">—</div></div>
+      </div>
+    </div>
+
+    <div class="comm-block">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">👻 «Призраки» по этапам и вакансиям</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Укажите количество призраков на каждом этапе и опишите причину.</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Вакансии</div>
+      <div id="ghost-vac-list"></div>
+      <button class="btn-add" onclick="addGhostVac()" style="margin-top:8px">+ Добавить вакансию</button>
+      <div id="ghost-summary" style="display:none;margin-top:12px">
+        <div class="divider"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px" id="ghost-stage-totals"></div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:13px;color:var(--text3)">Всего призраков:</span>
+          <span style="font-size:22px;font-weight:700" id="ghost-grand-total">0</span>
+          <span id="ghost-score-badge" style="font-size:13px;font-weight:600"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="comm-block">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">💬 Жалобы HM на коммуникацию</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Норма: 0 жалоб за месяц.</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="field"><label>Количество жалоб</label><input class="ni" type="number" id="comm-hm-complaints" value="0" min="0" style="width:80px" oninput="recalcComm()"/></div>
+        <div style="padding-top:18px"><div id="comm-complaint-sc" style="font-size:20px;font-weight:700;color:var(--text3)">—</div></div>
+      </div>
+    </div>
+
+    <div class="comm-total">
+      <span style="font-size:13px;color:var(--text3)">Итоговая оценка коммуникации:</span>
+      <span id="comm-total" style="font-size:22px;font-weight:700;color:var(--text3)">—</span>
+      <span id="comm-verdict" style="font-size:13px;font-weight:500;color:var(--text3)"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">❤ Soft skills</div>
+    <div id="soft-blocks"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📄 Итоговый комментарий</div>
+    <div class="two-col">
+      <div class="field"><label>Достижения месяца</label><textarea id="f-achieve" placeholder="Что получилось особенно хорошо..."></textarea></div>
+      <div class="field"><label>Трудности и препятствия</label><textarea id="f-challenges" placeholder="Что мешало..."></textarea></div>
+      <div class="field"><label>Цели на следующий месяц</label><textarea id="f-goals" placeholder="Конкретные цели..."></textarea></div>
+      <div class="field"><label>Комментарий руководителя</label><textarea id="f-comment" placeholder="Общее впечатление..."></textarea></div>
+    </div>
+  </div>
+  <div class="acts">
+    <button class="btn primary" onclick="submitReview()">✓ Сохранить оценку</button>
+    <button class="btn" onclick="clearAll()">↺ Очистить</button>
+  </div>
+</div>
+
+<!-- КОЛЛЕГИ -->
+<div id="page-peer" class="page">
+  <div class="anon-note">
+    <div style="width:34px;height:34px;border-radius:50%;background:var(--teal-light);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">🔒</div>
+    <div><div style="font-size:14px;font-weight:600">Анонимная оценка от коллег-рекрутеров</div><div style="font-size:12px;color:var(--text3);margin-top:2px">Имя не сохраняется. Показываются только усреднённые баллы.</div></div>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>Кого оцениваете</label><input id="p-target" type="text" placeholder="Имя рекрутера"/></div>
+      <div class="field"><label>Месяц</label><select id="p-month"><option>Май 2026</option><option>Апрель 2026</option><option>Март 2026</option><option>Февраль 2026</option><option>Январь 2026</option><option>Декабрь 2025</option></select></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-h" style="color:var(--teal-dark)">👥 Оценка взаимодействия с коллегами</div><div id="peer-blocks"></div></div>
+  <div class="card"><div class="field"><label>Комментарий (необязательно, анонимно)</label><textarea id="p-comment" style="height:70px" placeholder="Что хотите добавить..."></textarea></div></div>
+  <div class="acts"><button class="btn teal" onclick="submitPeer()">✓ Отправить анонимно</button><button class="btn" onclick="clearPeer()">↺ Очистить</button></div>
+  <div id="peer-success" style="display:none;margin-top:10px"></div>
+  <div class="card" style="margin-top:14px"><div class="card-h">📋 Полученные оценки</div><div id="peer-reviews-list"><p style="font-size:13px;color:var(--text3)">Пока нет оценок от коллег.</p></div></div>
+</div>
+
+<!-- HM -->
+<div id="page-hm" class="page">
+  <div class="anon-note">
+    <div style="width:34px;height:34px;border-radius:50%;background:var(--amber-light);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">🏢</div>
+    <div><div style="font-size:14px;font-weight:600">Оценка от нанимающего менеджера</div><div style="font-size:12px;color:var(--text3);margin-top:2px">Имя HM не сохраняется. Оценки усредняются по всем HM за месяц.</div></div>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>Рекрутер</label><input id="h-target" type="text" placeholder="Имя рекрутера"/></div>
+      <div class="field"><label>Месяц</label><select id="h-month"><option>Май 2026</option><option>Апрель 2026</option><option>Март 2026</option><option>Февраль 2026</option><option>Январь 2026</option><option>Декабрь 2025</option></select></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-h" style="color:var(--amber-dark)">🏢 Оценка работы рекрутера как партнёра</div><div id="hm-blocks"></div></div>
+  <div class="card"><div class="field"><label>Комментарий (необязательно, анонимно)</label><textarea id="h-comment" style="height:70px" placeholder="Ваше мнение о работе рекрутера..."></textarea></div></div>
+  <div class="acts"><button class="btn amber" onclick="submitHM()">✓ Отправить оценку</button><button class="btn" onclick="clearHM()">↺ Очистить</button></div>
+  <div id="hm-success" style="display:none;margin-top:10px"></div>
+  <div class="card" style="margin-top:14px"><div class="card-h">📋 Полученные оценки от HM</div><div id="hm-reviews-list"><p style="font-size:13px;color:var(--text3)">Пока нет оценок от hiring managers.</p></div></div>
+</div>
+
+<!-- РЕЗУЛЬТАТЫ -->
+<div id="page-result" class="page">
+  <div class="r-head">
+    <div><div style="font-size:12px;color:var(--text3);margin-bottom:4px" id="r-meta"></div><div style="font-size:20px;font-weight:700" id="r-name"></div></div>
+    <div style="text-align:right"><div class="score-big" id="r-score"></div><div style="font-size:14px;font-weight:700;margin-top:3px" id="r-verdict"></div><div style="font-size:12px;color:var(--text3);margin-top:2px" id="r-sub"></div></div>
+  </div>
+  <div class="mc-grid" id="r-metrics"></div>
+  <div class="rsec"><div class="card-h">✅ Источники оценки 360°</div><div class="src-grid" id="r-360-sources"></div></div>
+  <div class="two-col">
+    <div class="rsec" style="margin:0"><div class="card-h">📅 Встречи</div><div id="r-meet"></div></div>
+    <div class="rsec" style="margin:0"><div class="card-h">💼 Вакансии</div><div id="r-vac"></div></div>
+  </div>
+  <div style="height:14px"></div>
+  <div class="rsec"><div class="card-h">⏱ TTF — время закрытия</div><div id="r-ttf"></div></div>
+  <div class="rsec"><div class="card-h">👥 Адаптация</div><div id="r-adapt"></div></div>
+  <div class="rsec"><div class="card-h">💬 Коммуникация с кандидатами</div><div id="r-comm-cand"></div></div>
+  <div class="two-col">
+    <div class="rsec" style="margin:0"><div class="card-h">🌐 Профиль компетенций</div><div class="cw"><canvas id="radar-c"></canvas></div></div>
+    <div class="rsec" style="margin:0"><div class="card-h">❤ Soft skills</div><div id="r-soft"></div></div>
+  </div>
+  <div style="height:14px"></div>
+  <div class="rsec" id="r-peer-sec" style="display:none"><div class="card-h" style="color:var(--teal-dark)">👥 Оценка коллег — анонимно</div><div id="r-peer-content"></div></div>
+  <div class="rsec" id="r-hm-sec" style="display:none"><div class="card-h" style="color:var(--amber-dark)">🏢 Оценка hiring managers — анонимно</div><div id="r-hm-content"></div></div>
+  <div class="rsec"><div class="card-h">💡 Рекомендации</div><div id="r-recs"></div></div>
+  <div class="rsec" id="r-comm-sec" style="display:none"><div class="card-h">📄 Комментарии</div><div id="r-comm"></div></div>
+  <div class="acts">
+    <button class="btn" onclick="goTab('form')">← Назад</button>
+    <button class="btn pdf" onclick="exportPDF()">↓ Скачать PDF</button>
+    <button class="btn" onclick="window.print()">🖨 Печать</button>
+  </div>
+</div>
+
+<!-- АРХИВ -->
+<div id="page-history" class="page">
+  <div class="card"><div class="card-h">🕐 Архив оценок</div><div id="history-wrap"><p style="font-size:13px;color:var(--text3)">Пока нет сохранённых оценок.</p></div></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+// ====== SUPABASE CONFIG ======
+const SUPABASE_URL = 'https://ikketengwmtlehhxhel.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra2V0ZW5nd210bGVoaHhoeGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1Mjk0OTYsImV4cCI6MjA5NjEwNTQ5Nn0.9qzoMB4mCcE0YkjkZMYFEmi0DEO70lakhxH76kzEEZQ';
+let supabaseClient = null;
+function initSupabase(){
+  try{
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('Supabase connected');
+  }catch(e){console.error('Supabase init error',e);}
+}
+async function saveToSupabase(rev){
+  if(!supabaseClient) return;
+  try{
+    const {error} = await supabaseClient.from('reviews').insert([{
+      recruiter_name: rev.name,
+      month: rev.month,
+      mode: rev.mode,
+      level: rev.level||'',
+      total_score: parseFloat(rev.total.toFixed(2)),
+      kpi_score: parseFloat(rev.kpiAvg.toFixed(2)),
+      soft_score: rev.softAvg>0?parseFloat(rev.softAvg.toFixed(2)):null,
+      adapt_pct: rev.adaptPct,
+      peer_score: rev.peerData?parseFloat(rev.peerData.overall.toFixed(2)):null,
+      hm_score: rev.hmData?parseFloat(rev.hmData.overall.toFixed(2)):null,
+      comm_score: rev.commData.total?parseFloat(rev.commData.total.toFixed(2)):null,
+      ghost_total: rev.commData.ghostGrand||0,
+      offer_reject_pct: rev.commData.offerPct,
+      hm_complaints: rev.commData.complaints||0,
+      meets_fact: rev.meets.reduce((a,b)=>a+b.fact,0),
+      vacs_closed: rev.vacs.reduce((a,b)=>a+b.closed,0),
+      vacs_inwork: rev.vacs.reduce((a,b)=>a+b.inwork,0),
+      goals: rev.goals||'',
+      achieve: rev.achieve||'',
+      challenges: rev.challenges||'',
+      comment: rev.comment||'',
+      verdict: ['','Критично','Ниже нормы','Соответствует','Хорошо','Отлично'][Math.min(Math.round(rev.total),5)]||'',
+      raw_data: JSON.stringify(rev)
+    }]);
+    if(error){console.error('Supabase save error',error);showSaveStatus('error');}
+    else{console.log('Saved to Supabase');showSaveStatus('ok');}
+  }catch(e){console.error('Supabase error',e);showSaveStatus('error');}
+}
+async function savePeerToSupabase(target,month,scores,comment){
+  if(!supabaseClient) return;
+  const avgScore = scores && Object.values(scores).filter(v=>v>0).length ? 
+    Object.values(scores).filter(v=>v>0).reduce((a,b)=>a+b,0)/Object.values(scores).filter(v=>v>0).length : 0;
+  try{
+    await supabaseClient.from('peer_reviews').insert([{
+      recruiter_name: target, month, comment: comment||'',
+      avg_score: parseFloat(avgScore.toFixed(2)),
+      collab: scores.p_collab||0, process: scores.p_process||0, comm_inner: scores.p_comm||0
+    }]);
+  }catch(e){console.error('Peer save error',e);}
+}
+async function saveHMToSupabase(target,month,scores,comment){
+  if(!supabaseClient) return;
+  const avgScore = scores && Object.values(scores).filter(v=>v>0).length ? 
+    Object.values(scores).filter(v=>v>0).reduce((a,b)=>a+b,0)/Object.values(scores).filter(v=>v>0).length : 0;
+  try{
+    await supabaseClient.from('hm_reviews').insert([{
+      recruiter_name: target, month, comment: comment||'',
+      avg_score: parseFloat(avgScore.toFixed(2)),
+      sync: scores.h_sync||0, brief: scores.h_brief||0, speed: scores.h_speed||0, quality: scores.h_quality||0
+    }]);
+  }catch(e){console.error('HM save error',e);}
+}
+function showSaveStatus(type){
+  const existing = document.getElementById('save-status');
+  if(existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'save-status';
+  div.style.cssText = `position:fixed;top:70px;right:20px;z-index:9999;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity .3s`;
+  if(type==='ok'){div.style.background='#E1F5EE';div.style.color='#085041';div.textContent='✓ Оценка сохранена в базе данных';}
+  else{div.style.background='#FCEBEB';div.style.color='#791F1F';div.textContent='⚠ Ошибка сохранения — проверьте ключи Supabase';}
+  document.body.appendChild(div);
+  setTimeout(()=>{div.style.opacity='0';setTimeout(()=>div.remove(),300);},4000);
+}
+// ====== END SUPABASE CONFIG ======
+const MEET_DEFS=[{id:'intro',label:'Встреча-знакомство',sub:'первичное знакомство',plan:30},{id:'soft_int',label:'Soft-skills интервью',sub:'оценка компетенций и мотивации',plan:20},{id:'ref',label:'Сбор рекомендаций',sub:'звонки с прошлых мест работы',plan:10}];
+const VAC_DEFS=[{id:'linear',label:'Линейные вакансии',sub:'специалисты'},{id:'clevel',label:'C-level / топ-менеджмент',sub:'руководители, директора'}];
+const CONV_DEFS=[{id:'offer_conv',label:'Конверсия в офер',sub:'% кандидатов с офером',plan:20},{id:'quality',label:'Качество кандидатов',sub:'% прошедших тех. интервью',plan:70}];
+const SOFT_DEFS=[{id:'hm_work',label:'Работа с hiring manager',desc:'Синхронизация профиля, брифинги, оперативность'},{id:'initiative',label:'Проактивность',desc:'Инициатива, предложения по улучшению процессов'},{id:'learning',label:'Обучение и развитие',desc:'Применение новых подходов'},{id:'teamwork',label:'Командная работа',desc:'Взаимодействие с коллегами'}];
+const PEER_DEFS=[{id:'p_collab',label:'Взаимодействие с коллегами',desc:'Готовность помочь, открытость'},{id:'p_process',label:'Поддержка процессов команды',desc:'Соблюдение договорённостей'},{id:'p_comm',label:'Коммуникация внутри команды',desc:'Прозрачность, чёткость'}];
+const HM_DEFS=[{id:'h_sync',label:'Синхронизация профиля кандидата',desc:'Точность понимания требований'},{id:'h_brief',label:'Брифинги',desc:'Качество брифингов'},{id:'h_speed',label:'Оперативность',desc:'Скорость реакции'},{id:'h_quality',label:'Качество кандидатов',desc:'Соответствие требованиям'}];
+const GHOST_STAGES=[
+  {id:'intro',label:'Встреча-знакомство',color:'#7F77DD',bg:'#EEEDFE',tc:'#3C3489',ph:'Причина: не объяснили ценность вакансии / нашёл другой офер...'},
+  {id:'soft',label:'Soft-skills интервью',color:'#1D9E75',bg:'#E1F5EE',tc:'#085041',ph:'Причина: потерял интерес / не получил обратную связь вовремя...'},
+  {id:'ref',label:'Сбор рекомендаций',color:'#BA7517',bg:'#FAEEDA',tc:'#633806',ph:'Причина: этап затянулся / принял другой офер пока ждал...'},
+  {id:'offer',label:'Офер',color:'#E24B4A',bg:'#FCEBEB',tc:'#791F1F',ph:'Причина: не поддерживали контакт после офера...'},
+];
+const SCALE=['','Значительно ниже','Ниже ожиданий','Соответствует','Превышает','Значительно превышает'];
+const VERDICTS=['','Критично','Ниже нормы','Соответствует','Хорошо','Отлично'];
+const VCOL=['','#E24B4A','#BA7517','#7F77DD','#1D9E75','#0F6E56'];
+let softScores={},peerScores={},hmScores={};
+let ttfRows=[],ttfRowId=0,ghostVacs=[],ghostVacId=0;
+let reviews=[],peerReviews=[],hmReviews=[];
+let radarChart=null,lastReview=null;
+function avg(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;}
+function pctScore(f,p,inv){if(!p)return{pct:0,sc:0};let v=Math.round(inv?(p/Math.max(f,1))*100:(f/p)*100);return{pct:v,sc:v>=100?5:v>=85?4:v>=70?3:v>=50?2:1};}
+function pillCls(p){return p>=100?'pg':p>=80?'po':p>=60?'pl':'pb';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function initMeet(){const tb=document.getElementById('meet-tbody');tb.innerHTML='';MEET_DEFS.forEach(k=>{const tr=document.createElement('tr');tr.innerHTML=`<td><div class="kl">${k.label}</div><div class="ks">${k.sub}</div></td><td style="text-align:center"><input class="ni" type="number" id="mplan-${k.id}" value="${k.plan}" min="0" oninput="recalcMeet('${k.id}')"/></td><td style="text-align:center"><input class="ni" type="number" id="mfact-${k.id}" value="0" min="0" oninput="recalcMeet('${k.id}')"/></td><td style="text-align:center" id="pct-m-${k.id}"><span class="pill po">—</span></td><td style="text-align:center" id="sc-m-${k.id}"><span style="font-size:13px;color:var(--text3)">—</span></td>`;tb.appendChild(tr);});}
+function recalcMeet(id){const p=parseFloat(document.getElementById('mplan-'+id).value)||0,f=parseFloat(document.getElementById('mfact-'+id).value)||0,{pct,sc}=pctScore(f,p,false);const cls=pillCls(pct),sc2=sc>=4?'var(--teal)':sc>=3?'var(--purple)':'var(--amber)';document.getElementById('pct-m-'+id).innerHTML=`<span class="pill ${cls}">${pct||'—'}${pct?'%':''}</span>`;document.getElementById('sc-m-'+id).innerHTML=`<span style="font-size:13px;font-weight:700;color:${sc2}">${pct?sc+'/5':'—'}</span>`;}
+function initVac(){const tb=document.getElementById('vac-tbody');tb.innerHTML='';VAC_DEFS.forEach(k=>{const tr=document.createElement('tr');tr.innerHTML=`<td><div class="kl">${k.label}</div><div class="ks">${k.sub}</div></td><td style="text-align:center"><input class="ni" type="number" id="vin-${k.id}" value="0" min="0" oninput="recalcVac('${k.id}')"/></td><td style="text-align:center"><input class="ni" type="number" id="vcl-${k.id}" value="0" min="0" oninput="recalcVac('${k.id}')"/></td><td style="text-align:center" id="pct-v-${k.id}"><span class="pill po">—</span></td><td style="text-align:center" id="sc-v-${k.id}"><span style="font-size:13px;color:var(--text3)">—</span></td>`;tb.appendChild(tr);});}
+function recalcVac(id){const iw=parseFloat(document.getElementById('vin-'+id).value)||0,cl=parseFloat(document.getElementById('vcl-'+id).value)||0,pct=iw>0?Math.round((cl/iw)*100):0,sc=pct>=80?5:pct>=60?4:pct>=40?3:pct>=20?2:1;const cls=pillCls(pct),sc2=sc>=4?'var(--teal)':sc>=3?'var(--purple)':'var(--amber)';document.getElementById('pct-v-'+id).innerHTML=`<span class="pill ${cls}">${iw?pct+'%':'—'}</span>`;document.getElementById('sc-v-'+id).innerHTML=`<span style="font-size:13px;font-weight:700;color:${sc2}">${iw?sc+'/5':'—'}</span>`;}
+function initConv(){const tb=document.getElementById('conv-tbody');tb.innerHTML='';CONV_DEFS.forEach(k=>{const tr=document.createElement('tr');tr.innerHTML=`<td><div class="kl">${k.label}</div><div class="ks">${k.sub}</div></td><td style="text-align:center"><input class="ni" type="number" id="cplan-${k.id}" value="${k.plan}" min="0" oninput="recalcConv('${k.id}')"/></td><td style="text-align:center"><input class="ni" type="number" id="cfact-${k.id}" value="0" min="0" oninput="recalcConv('${k.id}')"/></td><td style="text-align:center" id="pct-c-${k.id}"><span class="pill po">—</span></td><td style="text-align:center" id="sc-c-${k.id}"><span style="font-size:13px;color:var(--text3)">—</span></td>`;tb.appendChild(tr);});}
+function recalcConv(id){const p=parseFloat(document.getElementById('cplan-'+id).value)||0,f=parseFloat(document.getElementById('cfact-'+id).value)||0,{pct,sc}=pctScore(f,p,false);const cls=pillCls(pct),sc2=sc>=4?'var(--teal)':sc>=3?'var(--purple)':'var(--amber)';document.getElementById('pct-c-'+id).innerHTML=`<span class="pill ${cls}">${pct||'—'}${pct?'%':''}</span>`;document.getElementById('sc-c-'+id).innerHTML=`<span style="font-size:13px;font-weight:700;color:${sc2}">${pct?sc+'/5':'—'}</span>`;}
+function addGhostVac(){const id=++ghostVacId;const stages={};GHOST_STAGES.forEach(s=>{stages[s.id]={count:0,comment:''};});ghostVacs.push({id,name:'',stages});renderGhostVacs();}
+function removeGhostVac(id){ghostVacs=ghostVacs.filter(v=>v.id!==id);renderGhostVacs();}
+function updateGhostName(id,val){const v=ghostVacs.find(x=>x.id===id);if(v)v.name=val;}
+function updateGhostCount(vacId,stageId,val){const v=ghostVacs.find(x=>x.id===vacId);if(v){v.stages[stageId].count=Math.max(0,parseInt(val)||0);recalcGhostSummary();}}
+function updateGhostComment(vacId,stageId,val){const v=ghostVacs.find(x=>x.id===vacId);if(v)v.stages[stageId].comment=val;}
+function renderGhostVacs(){
+  const w=document.getElementById('ghost-vac-list');
+  if(!ghostVacs.length){w.innerHTML='<p style="font-size:12px;color:var(--text3);padding:4px 0">Нет вакансий — нажмите «+ Добавить вакансию».</p>';recalcGhostSummary();return;}
+  w.innerHTML='';
+  ghostVacs.forEach(vac=>{
+    const block=document.createElement('div');block.className='ghost-vac';
+    block.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input type="text" placeholder="Название вакансии" value="${esc(vac.name)}" style="flex:1;height:32px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:13px;font-weight:500;font-family:inherit;outline:none" oninput="updateGhostName(${vac.id},this.value)"/><button class="btn-sm" onclick="removeGhostVac(${vac.id})">✕</button></div><div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Этапы</div><div id="gstages-${vac.id}"></div>`;
+    w.appendChild(block);
+    const sg=document.getElementById('gstages-'+vac.id);
+    GHOST_STAGES.forEach((st,idx)=>{
+      if(idx>0){const d=document.createElement('div');d.style.cssText='height:0.5px;background:var(--border);margin:.5rem 0';sg.appendChild(d);}
+      const row=document.createElement('div');row.className='gst-row';
+      row.innerHTML=`<div style="width:26px;height:26px;border-radius:var(--radius);background:${st.bg};display:flex;align-items:center;justify-content:center;margin-top:2px;font-size:11px;color:${st.tc};font-weight:700">◆</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:13px;font-weight:600">${st.label}</div>
+          <textarea class="gcmt" placeholder="${st.ph}" oninput="updateGhostComment(${vac.id},'${st.id}',this.value)">${esc(vac.stages[st.id].comment)}</textarea>
+        </div>
+        <div style="text-align:center;padding-top:2px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Призраков</div>
+          <input class="ni" type="number" min="0" value="${vac.stages[st.id].count}" style="width:58px" oninput="updateGhostCount(${vac.id},'${st.id}',this.value)"/>
+        </div>`;
+      sg.appendChild(row);
+    });
+  });
+  recalcGhostSummary();
+}
+function recalcGhostSummary(){
+  const totals={};GHOST_STAGES.forEach(s=>{totals[s.id]=0;});let grand=0;
+  ghostVacs.forEach(v=>{GHOST_STAGES.forEach(s=>{totals[s.id]+=v.stages[s.id].count;grand+=v.stages[s.id].count;});});
+  const summaryEl=document.getElementById('ghost-summary');
+  if(!ghostVacs.length){summaryEl.style.display='none';recalcComm();return;}
+  summaryEl.style.display='';
+  const st_el=document.getElementById('ghost-stage-totals');st_el.innerHTML='';
+  GHOST_STAGES.forEach(st=>{const v=totals[st.id];const c=document.createElement('div');c.style.cssText=`background:${st.bg};border-radius:var(--radius);padding:5px 8px;text-align:center`;c.innerHTML=`<div style="font-size:10px;color:${st.tc};margin-bottom:3px;font-weight:700">${st.label.split(' ')[0]}</div><div style="font-size:20px;font-weight:700;color:${st.color}">${v}</div>`;st_el.appendChild(c);});
+  const gtEl=document.getElementById('ghost-grand-total');gtEl.textContent=grand;gtEl.style.color=grand===0?'var(--teal)':grand<=3?'var(--amber)':'var(--red)';
+  const sc=grand===0?5:grand<=2?4:grand<=5?3:grand<=8?2:1;const scol=sc>=4?'var(--teal)':sc>=3?'var(--purple)':'var(--red)';
+  document.getElementById('ghost-score-badge').textContent=`Оценка: ${sc}/5 — ${VERDICTS[sc]||''}`;document.getElementById('ghost-score-badge').style.color=scol;
+  recalcComm();return{totals,grand,sc};
+}
+function recalcComm(){
+  const offers=parseInt(document.getElementById('comm-offers').value)||0,offerRej=parseInt(document.getElementById('comm-offer-rej').value)||0,complaints=parseInt(document.getElementById('comm-hm-complaints').value)||0;
+  let offerPct=null,offerSc=0;if(offers>0){offerPct=Math.round((offerRej/offers)*100);offerSc=offerPct<=5?5:offerPct<=10?4:offerPct<=20?3:offerPct<=35?2:1;}
+  const opEl=document.getElementById('comm-offer-pct');if(offerPct!==null){const col=offerPct<=10?'var(--teal)':offerPct<=20?'var(--amber)':'var(--red)';opEl.textContent=offerPct+'%';opEl.style.color=col;}else{opEl.textContent='—';opEl.style.color='var(--text3)';}
+  const totals={};GHOST_STAGES.forEach(s=>{totals[s.id]=0;});let grand=0;ghostVacs.forEach(v=>{GHOST_STAGES.forEach(s=>{totals[s.id]+=v.stages[s.id].count;grand+=v.stages[s.id].count;});});
+  const ghostSc=!ghostVacs.length?null:grand===0?5:grand<=2?4:grand<=5?3:grand<=8?2:1;
+  const complaintSc=complaints===0?5:complaints===1?4:complaints===2?3:complaints===3?2:1;
+  const csEl=document.getElementById('comm-complaint-sc');const cscol=complaintSc>=4?'var(--teal)':complaintSc>=3?'var(--purple)':'var(--red)';csEl.textContent=complaintSc+'/5';csEl.style.color=cscol;
+  const scores=[offerSc,ghostSc,complaintSc].filter(s=>s!==null&&s>0);const total=scores.length?avg(scores):null;const vi=total!==null?Math.min(Math.round(total),5):0;
+  const tEl=document.getElementById('comm-total'),vEl=document.getElementById('comm-verdict');
+  if(total!==null){tEl.textContent=total.toFixed(1)+'/5';tEl.style.color=VCOL[vi]||'var(--purple)';vEl.textContent=VERDICTS[vi]||'';}else{tEl.textContent='—';tEl.style.color='var(--text3)';vEl.textContent='';}
+  return{offerPct,offerSc,ghostTotals:totals,ghostGrand:grand,ghostSc,complaints,complaintSc,total,ghostVacsSnap:ghostVacs.map(v=>({id:v.id,name:v.name,stages:Object.fromEntries(GHOST_STAGES.map(s=>[s.id,{count:v.stages[s.id].count,comment:v.stages[s.id].comment}]))}))}; 
+}
+function calcAdapt(){const t=parseInt(document.getElementById('a-total').value)||0,s=parseInt(document.getElementById('a-success').value)||0,f=Math.max(t-s,0),pct=t>0?Math.round((s/t)*100):0,el=document.getElementById('adapt-result');if(!t){el.textContent='Заполните данные выше';return;}const col=pct>=80?'var(--teal)':pct>=60?'var(--purple)':'var(--red)';el.innerHTML=`<span style="font-weight:700;color:${col};font-size:16px">${pct}%</span> успешно · ${s} из ${t} чел. · <span style="color:var(--red)">${f} срыв${f===1?'':'а/ов'}</span>`;}
+function initSoft(){const w=document.getElementById('soft-blocks');w.innerHTML='';SOFT_DEFS.forEach(s=>{softScores[s.id]=0;const d=document.createElement('div');d.className='sb';d.innerHTML=`<div style="font-size:14px;font-weight:600;margin-bottom:3px">${s.label}</div><div style="font-size:12px;color:var(--text3);margin-bottom:8px">${s.desc}</div><div class="stars" id="stars-${s.id}">${[1,2,3,4,5].map(n=>`<button class="sbtn" onclick="setSoft('${s.id}',${n})">${n}</button>`).join('')}</div><div class="slabels"><span>Значительно ниже</span><span>Соответствует</span><span>Значительно выше</span></div><textarea class="stxt" id="ex-${s.id}" placeholder="Конкретный пример..."></textarea>`;w.appendChild(d);});}
+function setSoft(id,v){softScores[id]=v;document.querySelectorAll(`#stars-${id} .sbtn`).forEach((b,i)=>{b.className='sbtn'+(i<v?' sel':'');});}
+function initPeer(){const w=document.getElementById('peer-blocks');w.innerHTML='';PEER_DEFS.forEach(s=>{peerScores[s.id]=0;const d=document.createElement('div');d.className='sb';d.innerHTML=`<div style="font-size:14px;font-weight:600;margin-bottom:3px">${s.label}</div><div style="font-size:12px;color:var(--text3);margin-bottom:8px">${s.desc}</div><div class="stars" id="pstars-${s.id}">${[1,2,3,4,5].map(n=>`<button class="sbtn" onclick="setPeer('${s.id}',${n})">${n}</button>`).join('')}</div><div class="slabels"><span>Значительно ниже</span><span>Соответствует</span><span>Значительно выше</span></div>`;w.appendChild(d);});}
+function setPeer(id,v){peerScores[id]=v;document.querySelectorAll(`#pstars-${id} .sbtn`).forEach((b,i)=>{b.className='sbtn'+(i<v?' sel':'');});}
+function initHM(){const w=document.getElementById('hm-blocks');w.innerHTML='';HM_DEFS.forEach(s=>{hmScores[s.id]=0;const d=document.createElement('div');d.className='sb';d.innerHTML=`<div style="font-size:14px;font-weight:600;margin-bottom:3px">${s.label}</div><div style="font-size:12px;color:var(--text3);margin-bottom:8px">${s.desc}</div><div class="stars" id="hstars-${s.id}">${[1,2,3,4,5].map(n=>`<button class="sbtn" onclick="setHM('${s.id}',${n})">${n}</button>`).join('')}</div><div class="slabels"><span>Значительно ниже</span><span>Соответствует</span><span>Значительно выше</span></div>`;w.appendChild(d);});}
+function setHM(id,v){hmScores[id]=v;document.querySelectorAll(`#hstars-${id} .sbtn`).forEach((b,i)=>{b.className='sbtn'+(i<v?' sel':'');});}
+function submitPeer(){const target=document.getElementById('p-target').value.trim()||'Рекрутер',month=document.getElementById('p-month').value,scores={...peerScores},comment=document.getElementById('p-comment').value.trim();if(!Object.values(scores).filter(v=>v>0).length){alert('Пожалуйста, оцените хотя бы один критерий');return;}peerReviews.push({target,month,scores,comment,ts:Date.now()});renderPeerList();savePeerToSupabase(target,month,scores,comment);document.getElementById('peer-success').style.display='block';document.getElementById('peer-success').innerHTML='<div class="ok-note">✓ Оценка отправлена анонимно. Спасибо!</div>';clearPeer();}
+function submitHM(){const target=document.getElementById('h-target').value.trim()||'Рекрутер',month=document.getElementById('h-month').value,scores={...hmScores},comment=document.getElementById('h-comment').value.trim();if(!Object.values(scores).filter(v=>v>0).length){alert('Пожалуйста, оцените хотя бы один критерий');return;}hmReviews.push({target,month,scores,comment,ts:Date.now()});renderHMList();saveHMToSupabase(target,month,scores,comment);document.getElementById('hm-success').style.display='block';document.getElementById('hm-success').innerHTML='<div class="ok-note">✓ Оценка отправлена. Спасибо!</div>';clearHM();}
+function renderPeerList(){const w=document.getElementById('peer-reviews-list');if(!peerReviews.length){w.innerHTML='<p style="font-size:13px;color:var(--text3)">Пока нет оценок от коллег.</p>';return;}const grouped={};peerReviews.forEach(r=>{const k=r.target+'||'+r.month;if(!grouped[k])grouped[k]={target:r.target,month:r.month,reviews:[]};grouped[k].reviews.push(r);});w.innerHTML='';Object.values(grouped).forEach(g=>{const cnt=g.reviews.length,avgSc={};PEER_DEFS.forEach(d=>{const vals=g.reviews.map(r=>r.scores[d.id]).filter(v=>v>0);avgSc[d.id]=vals.length?avg(vals):0;});const overall=avg(Object.values(avgSc).filter(v=>v>0)),vi=Math.min(Math.round(overall),5);w.innerHTML+=`<div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px"><div style="font-size:13px;font-weight:600">${g.target} · ${g.month}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${cnt} оценок · <b style="color:var(--teal)">${overall.toFixed(1)}/5</b> — ${VERDICTS[vi]||''}</div>${PEER_DEFS.map(d=>avgSc[d.id]>0?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${d.label}: ${avgSc[d.id].toFixed(1)}</div>`:'').join('')}</div>`;});}
+function renderHMList(){const w=document.getElementById('hm-reviews-list');if(!hmReviews.length){w.innerHTML='<p style="font-size:13px;color:var(--text3)">Пока нет оценок от hiring managers.</p>';return;}const grouped={};hmReviews.forEach(r=>{const k=r.target+'||'+r.month;if(!grouped[k])grouped[k]={target:r.target,month:r.month,reviews:[]};grouped[k].reviews.push(r);});w.innerHTML='';Object.values(grouped).forEach(g=>{const cnt=g.reviews.length,avgSc={};HM_DEFS.forEach(d=>{const vals=g.reviews.map(r=>r.scores[d.id]).filter(v=>v>0);avgSc[d.id]=vals.length?avg(vals):0;});const overall=avg(Object.values(avgSc).filter(v=>v>0)),vi=Math.min(Math.round(overall),5);w.innerHTML+=`<div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px"><div style="font-size:13px;font-weight:600">${g.target} · ${g.month}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${cnt} оценок · <b style="color:var(--amber)">${overall.toFixed(1)}/5</b> — ${VERDICTS[vi]||''}</div>${HM_DEFS.map(d=>avgSc[d.id]>0?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${d.label}: ${avgSc[d.id].toFixed(1)}</div>`:'').join('')}</div>`;});}
+function clearPeer(){PEER_DEFS.forEach(s=>{peerScores[s.id]=0;document.querySelectorAll(`#pstars-${s.id} .sbtn`).forEach(b=>{b.className='sbtn';});});document.getElementById('p-comment').value='';}
+function clearHM(){HM_DEFS.forEach(s=>{hmScores[s.id]=0;document.querySelectorAll(`#hstars-${s.id} .sbtn`).forEach(b=>{b.className='sbtn';});});document.getElementById('h-comment').value='';}
+function getPeerAvg(name,month){const rel=peerReviews.filter(r=>r.target===name&&r.month===month);if(!rel.length)return null;const avgSc={};PEER_DEFS.forEach(d=>{const vals=rel.map(r=>r.scores[d.id]).filter(v=>v>0);avgSc[d.id]=vals.length?avg(vals):0;});return{avgScores:avgSc,overall:avg(Object.values(avgSc).filter(v=>v>0)),count:rel.length,comments:rel.map(r=>r.comment).filter(Boolean)};}
+function getHMAvg(name,month){const rel=hmReviews.filter(r=>r.target===name&&r.month===month);if(!rel.length)return null;const avgSc={};HM_DEFS.forEach(d=>{const vals=rel.map(r=>r.scores[d.id]).filter(v=>v>0);avgSc[d.id]=vals.length?avg(vals):0;});return{avgScores:avgSc,overall:avg(Object.values(avgSc).filter(v=>v>0)),count:rel.length,comments:rel.map(r=>r.comment).filter(Boolean)};}
+function addTTFRow(type){const id=++ttfRowId;ttfRows.push({id,type,name:'',start:'',end:'',days:null});renderTTFRows();}
+function removeTTFRow(id){ttfRows=ttfRows.filter(r=>r.id!==id);renderTTFRows();recalcTTF();}
+function renderTTFRows(){const w=document.getElementById('ttf-rows');w.innerHTML='';ttfRows.forEach(row=>{const d=document.createElement('div');d.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr auto auto;gap:6px;align-items:center;margin-bottom:6px';const bc=row.type==='linear'?'tb-lin':'tb-cl',bt=row.type==='linear'?'Лин.':'C-lvl';d.innerHTML=`<div style="display:flex;align-items:center;gap:6px"><span class="type-b ${bc}">${bt}</span><input style="flex:1;height:30px;padding:0 8px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);font-size:12px;font-weight:500;font-family:inherit;outline:none" type="text" placeholder="Название вакансии" value="${row.name}" oninput="updateTTFName(${row.id},this.value)"/></div><input class="di" type="date" value="${row.start}" oninput="updateTTFDate(${row.id},'start',this.value)"/><input class="di" type="date" value="${row.end}" oninput="updateTTFDate(${row.id},'end',this.value)"/><div id="ttf-days-${row.id}" style="font-size:13px;font-weight:700;min-width:38px;text-align:center;color:var(--text3)">${row.days!==null?row.days+'д':'—'}</div><button class="btn-sm" onclick="removeTTFRow(${row.id})">✕</button>`;w.appendChild(d);});}
+function updateTTFName(id,v){const r=ttfRows.find(x=>x.id===id);if(r)r.name=v;}
+function updateTTFDate(id,f,v){const r=ttfRows.find(x=>x.id===id);if(!r)return;r[f]=v;if(r.start&&r.end){const diff=Math.round((new Date(r.end)-new Date(r.start))/(864e5));r.days=diff>=0?diff:null;}else r.days=null;const el=document.getElementById('ttf-days-'+id);if(el){el.textContent=r.days!==null?r.days+'д':'—';el.style.color=r.days===null?'var(--text3)':r.days<=30?'var(--teal)':r.days<=60?'var(--amber)':'var(--red)';}recalcTTF();}
+function recalcTTF(){const pL=parseFloat(document.getElementById('ttf-plan-linear').value)||30,pC=parseFloat(document.getElementById('ttf-plan-clevel').value)||60;const linR=ttfRows.filter(r=>r.type==='linear'&&r.days!==null),clR=ttfRows.filter(r=>r.type==='clevel'&&r.days!==null);const aL=linR.length?Math.round(avg(linR.map(r=>r.days))):null,aC=clR.length?Math.round(avg(clR.map(r=>r.days))):null;document.getElementById('ttf-avg-linear').textContent=aL!==null?aL+' дн.':'—';document.getElementById('ttf-cnt-linear').textContent=linR.length?`${linR.length} вак. · норм. ${pL}д`:'нет данных';document.getElementById('ttf-avg-clevel').textContent=aC!==null?aC+' дн.':'—';document.getElementById('ttf-cnt-clevel').textContent=clR.length?`${clR.length} вак. · норм. ${pC}д`:'нет данных';const all=[...linR.map(r=>({days:r.days,plan:pL})),...clR.map(r=>({days:r.days,plan:pC}))];let sc=null;if(all.length){const aAll=Math.round(avg(all.map(r=>r.days))),aPlan=Math.round(avg(all.map(r=>r.plan)));document.getElementById('ttf-avg-all').textContent=aAll+' дн.';const pct=Math.round((aPlan/Math.max(aAll,1))*100);sc=pct>=100?5:pct>=85?4:pct>=70?3:pct>=50?2:1;const scol=sc>=4?'var(--teal)':sc>=3?'var(--purple)':'var(--amber)';document.getElementById('ttf-score-badge').innerHTML=`<span style="font-size:18px;font-weight:700;color:${scol}">${sc}/5</span>`;}else{document.getElementById('ttf-avg-all').textContent='—';document.getElementById('ttf-score-badge').innerHTML='';}return{avgL:aL,avgC:aC,planL:pL,planC:pC,sc};}
+function submitReview(){
+  const name=document.getElementById('f-name').value.trim()||'Рекрутер',month=document.getElementById('f-month').value,mode=document.getElementById('f-mode').value,level=document.getElementById('f-level').value.trim();
+  const meets=MEET_DEFS.map(k=>{const p=parseFloat(document.getElementById('mplan-'+k.id).value)||0,f=parseFloat(document.getElementById('mfact-'+k.id).value)||0;return{...k,plan:p,fact:f,...pctScore(f,p,false)};});
+  const vacs=VAC_DEFS.map(k=>{const iw=parseFloat(document.getElementById('vin-'+k.id).value)||0,cl=parseFloat(document.getElementById('vcl-'+k.id).value)||0,pct=iw>0?Math.round((cl/iw)*100):0,sc=pct>=80?5:pct>=60?4:pct>=40?3:pct>=20?2:1;return{...k,inwork:iw,closed:cl,pct,sc};});
+  const ttfData=recalcTTF(),ttfSnap=ttfRows.map(r=>({...r}));
+  const convs=CONV_DEFS.map(k=>{const p=parseFloat(document.getElementById('cplan-'+k.id).value)||0,f=parseFloat(document.getElementById('cfact-'+k.id).value)||0;return{...k,plan:p,fact:f,...pctScore(f,p,false)};});
+  const adapt={total:parseInt(document.getElementById('a-total').value)||0,success:parseInt(document.getElementById('a-success').value)||0,recCnt:parseInt(document.getElementById('a-rec-cnt').value)||0,hmCnt:parseInt(document.getElementById('a-hm-cnt').value)||0,recReason:document.getElementById('a-rec-reason').value.trim(),hmReason:document.getElementById('a-hm-reason').value.trim()};
+  const commData=recalcComm();
+  const softs=SOFT_DEFS.map(s=>({...s,score:softScores[s.id]||0,example:document.getElementById('ex-'+s.id).value.trim()}));
+  const achieve=document.getElementById('f-achieve').value.trim(),challenges=document.getElementById('f-challenges').value.trim(),goals=document.getElementById('f-goals').value.trim(),comment=document.getElementById('f-comment').value.trim();
+  const peerData=getPeerAvg(name,month),hmData=getHMAvg(name,month);
+  const kpiSc=[...meets.map(m=>m.sc),...vacs.map(v=>v.sc),...convs.map(c=>c.sc)];if(ttfData.sc)kpiSc.push(ttfData.sc);if(commData.total!==null)kpiSc.push(commData.total);
+  const kpiAvg=avg(kpiSc.filter(s=>s>0));const sArr=softs.filter(s=>s.score>0);const softAvg=sArr.length?avg(sArr.map(s=>s.score)):0;
+  const adaptPct=adapt.total>0?Math.round((adapt.success/adapt.total)*100):null;const adaptSc=adaptPct===null?null:adaptPct>=80?5:adaptPct>=60?4:adaptPct>=40?3:2;
+  const totalArr=[kpiAvg,softAvg>0?softAvg:null,adaptSc,peerData?peerData.overall:null,hmData?hmData.overall:null].filter(x=>x!==null);const total=avg(totalArr);
+  const rev={name,month,mode,level,meets,vacs,ttfData,ttfSnap,convs,adapt,commData,softs,achieve,challenges,goals,comment,total,kpiAvg,softAvg,adaptPct,adaptSc,peerData,hmData,ts:Date.now()};
+  reviews.unshift(rev);lastReview=rev;renderResult(rev);
+  saveToSupabase(rev);
+}
+function kpiRow(name,sub,pTxt,fTxt,pct,sc){const cls=pillCls(pct),sc2=sc>=4?'var(--teal)':sc>=3?'var(--purple)':'var(--amber)';return`<div class="krr"><div class="krn">${name}<div style="font-size:11px;color:var(--text3);font-weight:400">${sub}</div></div><div style="display:flex;gap:10px;font-size:12px;color:var(--text3)"><span>П: <b style="color:var(--text)">${pTxt}</b></span><span>Ф: <b style="color:var(--text)">${fTxt}</b></span></div><div class="btrack"><div class="bfill" style="width:${Math.min(pct,100)}%"></div></div><span class="pill ${cls}">${pct?pct+'%':'—'}</span><span style="font-weight:700;color:${sc2};min-width:26px;text-align:right">${pct?sc+'/5':'—'}</span></div>`;}
+function renderResult(rev){
+  document.getElementById('tab-res').style.display='';goTab('result');
+  document.getElementById('r-meta').textContent=`${rev.month} · ${rev.mode==='manager'?'Оценка руководителя':'Самооценка'}${rev.level?' · '+rev.level:''}`;
+  document.getElementById('r-name').textContent=rev.name;
+  const vi=Math.min(Math.round(rev.total),5);
+  const sc=document.getElementById('r-score');sc.textContent=rev.total.toFixed(1);sc.style.color=VCOL[vi]||'var(--purple)';
+  const vd=document.getElementById('r-verdict');vd.textContent=VERDICTS[vi]||'';vd.style.color=VCOL[vi]||'';
+  document.getElementById('r-sub').textContent=`KPI: ${rev.kpiAvg.toFixed(1)} · Soft: ${rev.softAvg>0?rev.softAvg.toFixed(1):'—'} · Адаптация: ${rev.adaptPct!==null?rev.adaptPct+'%':'—'}${rev.peerData?' · Коллеги: '+rev.peerData.overall.toFixed(1):''}${rev.hmData?' · HM: '+rev.hmData.overall.toFixed(1):''}`;
+  const totalVacIn=rev.vacs.reduce((a,b)=>a+b.inwork,0),totalVacCl=rev.vacs.reduce((a,b)=>a+b.closed,0),totalMeet=rev.meets.reduce((a,b)=>a+b.fact,0);
+  document.getElementById('r-metrics').innerHTML=`
+    <div class="mc"><div class="ml">Встреч</div><div class="mv">${totalMeet}</div><div class="ms">за месяц</div></div>
+    <div class="mc"><div class="ml">Закрыто вак.</div><div class="mv">${totalVacCl}</div><div class="ms">из ${totalVacIn}</div></div>
+    <div class="mc"><div class="ml">Адаптация</div><div class="mv" style="color:${rev.adaptPct>=80?'var(--teal)':rev.adaptPct>=60?'var(--purple)':'var(--red)'}">${rev.adaptPct!==null?rev.adaptPct+'%':'—'}</div><div class="ms">${rev.adapt.success}/${rev.adapt.total}</div></div>
+    ${rev.commData.total!==null?`<div class="mc"><div class="ml">Коммуникация</div><div class="mv" style="color:${VCOL[Math.min(Math.round(rev.commData.total),5)]}">${rev.commData.total.toFixed(1)}</div><div class="ms">с кандидатами</div></div>`:''}
+    ${rev.peerData?`<div class="mc"><div class="ml">Коллеги</div><div class="mv" style="color:var(--teal)">${rev.peerData.overall.toFixed(1)}</div><div class="ms">${rev.peerData.count} чел.</div></div>`:''}
+    ${rev.hmData?`<div class="mc"><div class="ml">HM</div><div class="mv" style="color:var(--amber)">${rev.hmData.overall.toFixed(1)}</div><div class="ms">${rev.hmData.count} HM</div></div>`:''}
+    <div class="mc"><div class="ml">Итог 360°</div><div class="mv" style="color:${VCOL[vi]}">${rev.total.toFixed(1)}</div><div class="ms">${VERDICTS[vi]||''}</div></div>`;
+  document.getElementById('r-360-sources').innerHTML=`
+    <div class="mc"><div class="ml">Руководитель</div><div class="mv" style="color:var(--purple)">${rev.kpiAvg.toFixed(1)}/5</div><div class="ms">KPI + soft</div></div>
+    <div class="mc"><div class="ml">Коллеги (анон.)</div><div class="mv" style="color:var(--teal)">${rev.peerData?rev.peerData.overall.toFixed(1)+'/5':'—'}</div><div class="ms">${rev.peerData?rev.peerData.count+' оценок':'нет данных'}</div></div>
+    <div class="mc"><div class="ml">Hiring Managers</div><div class="mv" style="color:var(--amber)">${rev.hmData?rev.hmData.overall.toFixed(1)+'/5':'—'}</div><div class="ms">${rev.hmData?rev.hmData.count+' оценок':'нет данных'}</div></div>`;
+  document.getElementById('r-meet').innerHTML=rev.meets.map(m=>kpiRow(m.label,m.sub,m.plan+' шт',m.fact+' шт',m.pct,m.sc)).join('');
+  document.getElementById('r-vac').innerHTML=rev.vacs.map(v=>{const cls=pillCls(v.pct),sc2=v.sc>=4?'var(--teal)':v.sc>=3?'var(--purple)':'var(--amber)';return`<div class="krr"><div class="krn">${v.label}<div style="font-size:11px;color:var(--text3);font-weight:400">${v.sub}</div></div><div style="display:flex;gap:10px;font-size:12px;color:var(--text3)"><span>Ведёт: <b style="color:var(--text)">${v.inwork}</b></span><span>Закрыл: <b style="color:var(--text)">${v.closed}</b></span></div><div class="btrack"><div class="bfill" style="width:${Math.min(v.pct,100)}%"></div></div><span class="pill ${cls}">${v.inwork?v.pct+'%':'—'}</span><span style="font-weight:700;color:${sc2};min-width:26px;text-align:right">${v.inwork?v.sc+'/5':'—'}</span></div>`;}).join('');
+  const td=rev.ttfData;let ttfHtml='';
+  if(rev.ttfSnap.length){ttfHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">`;['linear','clevel'].forEach(type=>{const rows=rev.ttfSnap.filter(r=>r.type===type&&r.days!==null),plan=type==='linear'?td.planL:td.planC,a=type==='linear'?td.avgL:td.avgC,label=type==='linear'?'Линейные':'C-level';if(!rows.length){ttfHtml+=`<div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px"><div style="font-size:12px;font-weight:600;color:var(--text3)">${label}</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Нет данных</div></div>`;return;}const ac=a<=plan?'var(--teal)':a<=plan*1.3?'var(--amber)':'var(--red)';ttfHtml+=`<div style="background:var(--bg3);border-radius:var(--radius);padding:10px 14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--text3)">${label}</div><div style="font-size:16px;font-weight:700;color:${ac}">${a} дн.<span style="font-size:10px;color:var(--text3)"> норм.${plan}д</span></div></div>`;rows.forEach(r=>{const col=r.days<=plan?'var(--teal)':r.days<=plan*1.3?'var(--amber)':'var(--red)';ttfHtml+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-top:0.5px solid var(--border)"><span style="color:var(--text3)">${r.name||'Вакансия'}</span><span style="font-weight:700;color:${col}">${r.days} дн.</span></div>`;});ttfHtml+=`</div>`;});ttfHtml+=`</div>`;if(td.sc){const scol=td.sc>=4?'var(--teal)':td.sc>=3?'var(--purple)':'var(--amber)',aAll=Math.round(avg(rev.ttfSnap.filter(r=>r.days!==null).map(r=>r.days)));ttfHtml+=`<div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:var(--radius);padding:10px 14px"><span style="font-size:12px;color:var(--text3)">Общее среднее:</span><span style="font-size:16px;font-weight:700">${aAll} дн.</span><span style="font-size:14px;font-weight:700;color:${scol}">Оценка: ${td.sc}/5</span></div>`;}}
+  else ttfHtml='<div style="font-size:13px;color:var(--text3)">Данные не заполнены</div>';
+  document.getElementById('r-ttf').innerHTML=ttfHtml;
+  const a=rev.adapt,failed=Math.max(a.total-a.success,0);let adaptHtml='';
+  if(a.total>0){const pct=rev.adaptPct,col=pct>=80?'var(--teal)':pct>=60?'var(--purple)':'var(--red)';adaptHtml+=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap"><div style="font-size:28px;font-weight:700;color:${col}">${pct}%</div><div style="font-size:13px;color:var(--text3)">${a.success} успешно · <span style="color:var(--red)">${failed} срыв${failed===1?'':'а/ов'}</span> из ${a.total} чел.</div></div>`;if(failed>0){adaptHtml+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">`;if(a.recCnt>0||a.recReason)adaptHtml+=`<div style="background:var(--purple-light);border-radius:var(--radius);padding:10px 14px"><div style="font-size:12px;font-weight:600;color:var(--purple-text);margin-bottom:4px">Рекрутер (${a.recCnt} сл.)</div><div style="font-size:13px;color:var(--purple-dark)">${a.recReason||'—'}</div></div>`;if(a.hmCnt>0||a.hmReason)adaptHtml+=`<div style="background:var(--amber-light);border-radius:var(--radius);padding:10px 14px"><div style="font-size:12px;font-weight:600;color:var(--amber-text);margin-bottom:4px">HM (${a.hmCnt} сл.)</div><div style="font-size:13px;color:var(--amber-dark)">${a.hmReason||'—'}</div></div>`;adaptHtml+=`</div>`;}}
+  else adaptHtml='<div style="font-size:13px;color:var(--text3)">Данные не заполнены</div>';
+  document.getElementById('r-adapt').innerHTML=adaptHtml;
+  const cd=rev.commData;let commCandHtml='';
+  if(cd.total!==null){
+    const vi3=Math.min(Math.round(cd.total),5);commCandHtml+=`<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap"><div style="font-size:28px;font-weight:700;color:${VCOL[vi3]}">${cd.total.toFixed(1)}/5</div><div style="font-size:13px;color:var(--text3)">${VERDICTS[vi3]||''}</div></div>`;
+    if(cd.offerPct!==null){const col=cd.offerPct<=10?'var(--teal)':cd.offerPct<=20?'var(--amber)':'var(--red)';commCandHtml+=`<div class="krr"><div class="krn">✋ Отказы после офера<div style="font-size:11px;color:var(--text3);font-weight:400">норма ≤10%</div></div><span style="font-size:14px;font-weight:700;color:${col}">${cd.offerPct}%</span><span style="font-weight:700;color:${cd.offerSc>=4?'var(--teal)':cd.offerSc>=3?'var(--purple)':'var(--red)'}">${cd.offerSc}/5</span></div>`;}
+    if(cd.ghostVacsSnap&&cd.ghostVacsSnap.length){commCandHtml+=`<div style="padding:8px 0;border-bottom:0.5px solid var(--border)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px"><div style="font-size:13px;font-weight:600">👻 Призраки по этапам</div><span style="font-weight:700;color:${cd.ghostSc>=4?'var(--teal)':cd.ghostSc>=3?'var(--purple)':'var(--red)'}">Всего: ${cd.ghostGrand} · ${cd.ghostSc}/5</span></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">${GHOST_STAGES.map(st=>`<div style="background:${st.bg};border-radius:var(--radius);padding:5px 8px;text-align:center"><div style="font-size:10px;color:${st.tc};margin-bottom:2px;font-weight:700">${st.label.split(' ')[0]}</div><div style="font-size:18px;font-weight:700;color:${st.color}">${cd.ghostTotals[st.id]||0}</div></div>`).join('')}</div>`;
+    const vacsWithData=cd.ghostVacsSnap.filter(v=>GHOST_STAGES.some(s=>v.stages[s.id].count>0||v.stages[s.id].comment));
+    if(vacsWithData.length){commCandHtml+=`<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Разбор по вакансиям</div>`;vacsWithData.forEach(vac=>{const vacTotal=GHOST_STAGES.reduce((a,s)=>a+vac.stages[s.id].count,0);commCandHtml+=`<div class="grvac"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px"><div style="font-size:13px;font-weight:600">${esc(vac.name)||'Вакансия без названия'}</div>${vacTotal>0?`<span style="font-size:11px;font-weight:600;padding:1px 8px;border-radius:20px;background:${vacTotal>=4?'var(--red-light)':vacTotal>=2?'var(--amber-light)':'var(--teal-light)'};color:${vacTotal>=4?'var(--red-text)':vacTotal>=2?'var(--amber-text)':'var(--teal-text)'}">${vacTotal} призрак${vacTotal===1?'':'а/ов'}</span>`:''}</div>`;GHOST_STAGES.forEach(st=>{const cnt=vac.stages[st.id].count,cmt=vac.stages[st.id].comment.trim();if(!cnt&&!cmt)return;commCandHtml+=`<div style="display:flex;gap:7px;align-items:flex-start;padding:4px 0;border-top:0.5px solid var(--border)"><div style="width:18px;height:18px;border-radius:3px;background:${st.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:${st.tc};font-weight:700">◆</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span style="font-size:12px;font-weight:600">${st.label}</span>${cnt>0?`<span style="font-size:11px;font-weight:600;padding:1px 6px;border-radius:20px;background:${st.bg};color:${st.tc}">${cnt} призрак${cnt===1?'':'а/ов'}</span>`:''}</div>${cmt?`<div style="font-size:12px;color:var(--text3);font-style:italic;margin-top:2px;line-height:1.4">"${esc(cmt)}"</div>`:''}</div></div>`;});commCandHtml+=`</div>`;});}commCandHtml+=`</div>`;}
+    commCandHtml+=`<div class="krr"><div class="krn">💬 Жалобы HM<div style="font-size:11px;color:var(--text3);font-weight:400">норма 0</div></div><span style="font-size:14px;font-weight:700">${cd.complaints} шт.</span><span style="font-weight:700;color:${cd.complaintSc>=4?'var(--teal)':cd.complaintSc>=3?'var(--purple)':'var(--red)'}">${cd.complaintSc}/5</span></div>`;
+  } else commCandHtml='<div style="font-size:13px;color:var(--text3)">Данные не заполнены</div>';
+  document.getElementById('r-comm-cand').innerHTML=commCandHtml;
+  const sl=document.getElementById('r-soft');sl.innerHTML='';rev.softs.forEach(s=>{if(!s.score)return;sl.innerHTML+=`<div class="sr2"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><div style="font-size:13px;font-weight:600">${s.label}</div><div style="display:flex;align-items:center;gap:5px"><div class="ssh">${[1,2,3,4,5].map(n=>`<div class="ss${n<=s.score?' on':''}"></div>`).join('')}</div><span style="font-size:13px;font-weight:700;color:var(--purple)">${s.score}/5</span></div></div><div style="font-size:11px;color:var(--text3)">${SCALE[s.score]}</div>${s.example?`<div style="font-size:12px;color:var(--text3);font-style:italic;margin-top:2px">"${s.example}"</div>`:''}</div>`;});
+  const ps=document.getElementById('r-peer-sec'),pc=document.getElementById('r-peer-content');if(rev.peerData){ps.style.display='';pc.innerHTML=`<div style="margin-bottom:10px;font-size:13px;color:var(--text3)">${rev.peerData.count} анонимных оценок · <b style="color:var(--teal)">${rev.peerData.overall.toFixed(1)}/5</b></div>`;PEER_DEFS.forEach(d=>{const v=rev.peerData.avgScores[d.id]||0;if(!v)return;const col=v>=4?'var(--teal)':v>=3?'var(--purple)':'var(--amber)';pc.innerHTML+=`<div class="avg-bar"><div class="avg-bar-label">${d.label}</div><div class="avg-bar-track"><div class="avg-bar-fill" style="width:${(v/5)*100}%;background:${col}"></div></div><div class="avg-bar-val" style="color:${col}">${v.toFixed(1)}</div></div>`;});if(rev.peerData.comments.length){pc.innerHTML+=`<div style="margin-top:8px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px">Комментарии</div>`;rev.peerData.comments.forEach(c=>{pc.innerHTML+=`<div style="font-size:12px;color:var(--text3);font-style:italic;padding:4px 0;border-top:0.5px solid var(--border)">"${c}"</div>`;});}}else ps.style.display='none';
+  const hs=document.getElementById('r-hm-sec'),hc=document.getElementById('r-hm-content');if(rev.hmData){hs.style.display='';hc.innerHTML=`<div style="margin-bottom:10px;font-size:13px;color:var(--text3)">${rev.hmData.count} оценок · <b style="color:var(--amber)">${rev.hmData.overall.toFixed(1)}/5</b></div>`;HM_DEFS.forEach(d=>{const v=rev.hmData.avgScores[d.id]||0;if(!v)return;const col=v>=4?'var(--teal)':v>=3?'var(--amber)':'var(--red)';hc.innerHTML+=`<div class="avg-bar"><div class="avg-bar-label">${d.label}</div><div class="avg-bar-track"><div class="avg-bar-fill" style="width:${(v/5)*100}%;background:${col}"></div></div><div class="avg-bar-val" style="color:${col}">${v.toFixed(1)}</div></div>`;});if(rev.hmData.comments.length){hc.innerHTML+=`<div style="margin-top:8px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px">Комментарии HM</div>`;rev.hmData.comments.forEach(c=>{hc.innerHTML+=`<div style="font-size:12px;color:var(--text3);font-style:italic;padding:4px 0;border-top:0.5px solid var(--border)">"${c}"</div>`;});}}else hs.style.display='none';
+  drawRadar(rev);drawRecs(rev);
+  const cs=document.getElementById('r-comm-sec'),cc2=document.getElementById('r-comm');const parts=[];if(rev.achieve)parts.push(`<div style="margin-bottom:8px"><div style="font-size:11px;color:var(--text3);margin-bottom:2px;font-weight:600">Достижения</div><div style="font-size:13px">${rev.achieve}</div></div>`);if(rev.challenges)parts.push(`<div style="margin-bottom:8px"><div style="font-size:11px;color:var(--text3);margin-bottom:2px;font-weight:600">Трудности</div><div style="font-size:13px">${rev.challenges}</div></div>`);if(rev.goals)parts.push(`<div style="margin-bottom:8px"><div style="font-size:11px;color:var(--text3);margin-bottom:2px;font-weight:600">Цели</div><div style="font-size:13px">${rev.goals}</div></div>`);if(rev.comment)parts.push(`<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px;font-weight:600">Комментарий</div><div style="font-size:13px">${rev.comment}</div></div>`);if(parts.length){cs.style.display='';cc2.innerHTML=parts.join('');}else cs.style.display='none';
+}
+function drawRadar(rev){if(radarChart){radarChart.destroy();radarChart=null;}const labels=[...rev.meets.map(m=>m.id==='intro'?'Знакомство':m.id==='soft_int'?'Soft-int.':'Рекомендации'),...rev.vacs.map(v=>v.id==='linear'?'Лин.':'C-lvl'),...rev.convs.map(c=>c.id==='offer_conv'?'Конверсия':'Качество'),'Коммуникация',...rev.softs.map(s=>s.label.split(' ')[0]+'…')];const data=[...rev.meets.map(m=>m.sc),...rev.vacs.map(v=>v.sc),...rev.convs.map(c=>c.sc),rev.commData.total||0,...rev.softs.map(s=>s.score||0)];radarChart=new Chart(document.getElementById('radar-c'),{type:'radar',data:{labels,datasets:[{label:'Оценка',data,borderColor:'#7F77DD',backgroundColor:'rgba(127,119,221,0.15)',pointBackgroundColor:'#7F77DD',pointRadius:3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:9},backdropColor:'transparent',color:'#888780'},pointLabels:{font:{size:9},color:'#5F5E5A'},grid:{color:'rgba(136,135,128,0.2)'},angleLines:{color:'rgba(136,135,128,0.2)'}}}}});}
+function drawRecs(rev){const w=document.getElementById('r-recs');w.innerHTML='';const all=[...rev.meets.map(k=>({id:k.id,label:k.label,score:k.sc})),...rev.vacs.map(k=>({id:k.id,label:k.label,score:k.sc})),...rev.convs.map(k=>({id:k.id,label:k.label,score:k.sc})),rev.commData.total!==null?{id:'comm_cand',label:'Коммуникация с кандидатами',score:rev.commData.total}:null,...rev.softs.filter(s=>s.score>0).map(s=>({id:s.id,label:s.label,score:s.score}))].filter(x=>x&&x.score>0).sort((a,b)=>b.score-a.score);all.slice(0,2).forEach(item=>{w.innerHTML+=`<div class="ri"><div class="ric st">★</div><div class="rt"><b>Сильная сторона: ${item.label}</b><p>${Number(item.score).toFixed(1)}/5 — продолжайте развивать это преимущество.</p></div></div>`;});all.slice(-2).reverse().forEach(item=>{w.innerHTML+=`<div class="ri"><div class="ric ${item.score<=2?'wn':'gr'}">↑</div><div class="rt"><b>Зона роста: ${item.label}</b> (${Number(item.score).toFixed(1)}/5)<p>Обсудите конкретные шаги на встрече с руководителем.</p></div></div>`;});const cd=rev.commData;if(cd.offerPct!==null&&cd.offerPct>10)w.innerHTML+=`<div class="ri"><div class="ric wn">!</div><div class="rt"><b>Высокий % отказов после офера (${cd.offerPct}%)</b><p>Поддерживайте контакт каждые 2–3 дня между офером и выходом.</p></div></div>`;if(cd.ghostGrand>0){const worst=GHOST_STAGES.reduce((a,b)=>(cd.ghostTotals[b.id]||0)>(cd.ghostTotals[a.id]||0)?b:a,GHOST_STAGES[0]);const tips={intro:'Объясняйте следующий шаг прямо на встрече. Follow-up через 24 ч.',soft:'После soft-интервью — чёткий тайминг ответа.',ref:'Ускорьте этот этап или ведите параллельно с другими.',offer:'Поддерживайте контакт каждые 2–3 дня до выхода.'};w.innerHTML+=`<div class="ri"><div class="ric wn">👻</div><div class="rt"><b>Больше всего призраков: ${worst.label} (${cd.ghostTotals[worst.id]})</b><p>${tips[worst.id]}</p></div></div>`;}if(cd.complaints>0)w.innerHTML+=`<div class="ri"><div class="ric wn">!</div><div class="rt"><b>Жалобы HM (${cd.complaints} шт.)</b><p>Введите статус-апдейт для HM раз в 2–3 дня по активным вакансиям.</p></div></div>`;if(rev.peerData&&rev.peerData.overall<3)w.innerHTML+=`<div class="ri"><div class="ric wn">↓</div><div class="rt"><b>Низкая оценка от коллег (${rev.peerData.overall.toFixed(1)}/5)</b><p>Уделите внимание командному взаимодействию.</p></div></div>`;if(rev.hmData&&rev.hmData.overall<3)w.innerHTML+=`<div class="ri"><div class="ric wn">↓</div><div class="rt"><b>Низкая оценка от HM (${rev.hmData.overall.toFixed(1)}/5)</b><p>Инициируйте встречи для лучшей синхронизации.</p></div></div>`;if(rev.goals)w.innerHTML+=`<div class="ri"><div class="ric gr">→</div><div class="rt"><b>Цели следующего месяца</b><p>${rev.goals}</p></div></div>`;}
+function exportPDF(){if(!lastReview){alert('Сначала сохраните оценку');return;}const r=lastReview;const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const M=15,CW=180;let y=M;const chk=(n=16)=>{if(y+n>283){doc.addPage();y=M;}};const t=(txt,x,yy,opts={})=>{doc.setFontSize(opts.size||10);doc.setFont('helvetica',opts.bold?'bold':'normal');doc.setTextColor(...(opts.color||[40,40,40]));const ls=doc.splitTextToSize(String(txt),opts.maxW||CW);doc.text(ls,x,yy);return yy+ls.length*(opts.size||10)*0.38+1.5;};const rect=(x,yy,w,h,col)=>{doc.setFillColor(...col);doc.rect(x,yy,w,h,'F');};const sh=(title,col)=>{chk(10);doc.setDrawColor(210,210,210);doc.setLineWidth(0.3);doc.line(M,y,M+CW,y);y+=1;y=t(title,M,y,{bold:true,size:11,color:col||[60,60,60]});y+=1;};const kl=(name,sub,pT,fT,pct,sc)=>{chk(10);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);doc.text(name,M,y);const col=sc>=4?[29,158,117]:sc>=3?[127,119,221]:[186,117,23];doc.setTextColor(...col);doc.text(`${pct?pct+'%':'—'}  ${pct?sc+'/5':'—'}`,M+CW,y,{align:'right'});doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);doc.text(`${sub}   П: ${pT}  Ф: ${fT}`,M,y+3.5);rect(M,y+5,CW,1.5,[230,230,230]);if(pct)rect(M,y+5,CW*Math.min(pct,100)/100,1.5,col);y+=9;};
+const vi=Math.min(Math.round(r.total),5);rect(M,y,CW,20,[127,119,221]);doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);doc.text('Performance Review 360° — Рекрутер',M+3,y+7);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(`${r.name}  |  ${r.month}  |  ${r.mode==='manager'?'Оценка руководителя':'Самооценка'}${r.level?'  |  '+r.level:''}`,M+3,y+14);y+=23;rect(M,y,CW,13,[245,244,255]);doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(...(VCOL[vi].replace('#','').match(/../g).map(h=>parseInt(h,16))));doc.text(r.total.toFixed(1),M+3,y+10);doc.setFontSize(11);doc.setTextColor(60,60,60);doc.text(`${VERDICTS[vi]||''} (360°)`,M+16,y+8);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);doc.text(`KPI: ${r.kpiAvg.toFixed(1)}  Коллеги: ${r.peerData?r.peerData.overall.toFixed(1):'—'}  HM: ${r.hmData?r.hmData.overall.toFixed(1):'—'}  Адаптация: ${r.adaptPct!==null?r.adaptPct+'%':'—'}`,M+16,y+13);y+=17;
+sh('Встречи');r.meets.forEach(m=>kl(m.label,m.sub,m.plan+' шт',m.fact+' шт',m.pct,m.sc));y+=2;sh('Вакансии');r.vacs.forEach(v=>kl(v.label,v.sub,'—',`Ведёт:${v.inwork} Закр.:${v.closed}`,v.pct,v.sc));y+=2;sh('Конверсия');r.convs.forEach(c=>kl(c.label,c.sub,c.plan+'%',c.fact+'%',c.pct,c.sc));y+=2;
+const cd=r.commData;if(cd.total!==null){sh('Коммуникация с кандидатами');const vi3=Math.min(Math.round(cd.total),5);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(...(VCOL[vi3].replace('#','').match(/../g).map(h=>parseInt(h,16))));doc.text(`Итог: ${cd.total.toFixed(1)}/5 — ${VERDICTS[vi3]||''}`,M,y);y+=5;if(cd.offerPct!==null){doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(`Отказы после офера: ${cd.offerPct}% (норма ≤10%)  Оценка: ${cd.offerSc}/5`,M,y);y+=5;}if(cd.ghostVacsSnap&&cd.ghostVacsSnap.length){doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);doc.text(`Призраки всего: ${cd.ghostGrand}  Оценка: ${cd.ghostSc}/5`,M,y);y+=4;const vacsWithData=cd.ghostVacsSnap.filter(v=>GHOST_STAGES.some(s=>v.stages[s.id].count>0||v.stages[s.id].comment));vacsWithData.forEach(vac=>{chk(8);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);doc.text(vac.name||'Вакансия без названия',M,y);y+=4;GHOST_STAGES.forEach(st=>{const cnt=vac.stages[st.id].count,cmt=vac.stages[st.id].comment.trim();if(!cnt&&!cmt)return;chk(10);doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text(`  ${st.label}${cnt>0?' — '+cnt+' призраков':''}`,M,y);y+=3.5;if(cmt){doc.setFont('helvetica','italic');doc.setTextColor(140,140,140);const ls=doc.splitTextToSize(`"${cmt}"`,CW-6);doc.text(ls,M+3,y);y+=ls.length*3.5;}});y+=2;});}doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(`Жалобы HM: ${cd.complaints} шт.  Оценка: ${cd.complaintSc}/5`,M,y);y+=7;}
+if(r.peerData){chk(16);sh('Оценка коллег — анонимно',[29,158,117]);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(`${r.peerData.count} оценок · ${r.peerData.overall.toFixed(1)}/5`,M,y);y+=5;PEER_DEFS.forEach(d=>{const v=r.peerData.avgScores[d.id]||0;if(!v)return;chk(7);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);doc.text(d.label,M,y);doc.setTextColor(29,158,117);doc.text(`${v.toFixed(1)}/5`,M+CW,y,{align:'right'});rect(M,y+1.5,CW,1.5,[230,230,230]);rect(M,y+1.5,CW*(v/5),1.5,[29,158,117]);y+=6;});y+=2;}
+if(r.hmData){chk(16);sh('Оценка hiring managers',[186,117,23]);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(`${r.hmData.count} оценок · ${r.hmData.overall.toFixed(1)}/5`,M,y);y+=5;HM_DEFS.forEach(d=>{const v=r.hmData.avgScores[d.id]||0;if(!v)return;chk(7);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);doc.text(d.label,M,y);doc.setTextColor(186,117,23);doc.text(`${v.toFixed(1)}/5`,M+CW,y,{align:'right'});rect(M,y+1.5,CW,1.5,[230,230,230]);rect(M,y+1.5,CW*(v/5),1.5,[186,117,23]);y+=6;});y+=2;}
+const sArr=r.softs.filter(s=>s.score>0);if(sArr.length){chk(14);sh('Soft skills');sArr.forEach(s=>{chk(8);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);doc.text(s.label,M,y);doc.setTextColor(127,119,221);doc.text(`${s.score}/5`,M+CW,y,{align:'right'});if(s.example){doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);const el=doc.splitTextToSize(`"${s.example}"`,CW);doc.text(el,M,y+3.5);y+=el.length*3;}y+=6;});y+=2;}
+const comms=[];if(r.achieve)comms.push({l:'Достижения',t:r.achieve});if(r.challenges)comms.push({l:'Трудности',t:r.challenges});if(r.goals)comms.push({l:'Цели',t:r.goals});if(r.comment)comms.push({l:'Комментарий',t:r.comment});if(comms.length){sh('Комментарии');comms.forEach(c=>{chk(10);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(120,120,120);doc.text(c.l,M,y);y+=3.5;y=t(c.t,M,y,{size:9,maxW:CW});y+=2;});}
+doc.setFontSize(7);doc.setTextColor(180,180,180);doc.text(`Сформировано: ${new Date().toLocaleDateString('ru-RU')}`,M,291);doc.save(`PR360_${r.name.replace(/\s/g,'_')}_${r.month.replace(/\s/g,'_')}.pdf`);}
+function clearAll(){['f-name','f-level','f-achieve','f-challenges','f-goals','f-comment'].forEach(id=>document.getElementById(id).value='');['a-total','a-success','a-rec-cnt','a-hm-cnt'].forEach(id=>document.getElementById(id).value=0);['a-rec-reason','a-hm-reason'].forEach(id=>document.getElementById(id).value='');document.getElementById('comm-offers').value=0;document.getElementById('comm-offer-rej').value=0;document.getElementById('comm-hm-complaints').value=0;document.getElementById('adapt-result').textContent='Заполните данные выше';ghostVacs=[];ghostVacId=0;document.getElementById('ghost-vac-list').innerHTML='<p style="font-size:12px;color:var(--text3);padding:4px 0">Нет вакансий.</p>';document.getElementById('ghost-summary').style.display='none';ttfRows=[];ttfRowId=0;renderTTFRows();recalcTTF();recalcComm();initMeet();initVac();initConv();initSoft();}
+function renderHistory(){const w=document.getElementById('history-wrap');if(!reviews.length){w.innerHTML='<p style="font-size:13px;color:var(--text3)">Пока нет сохранённых оценок.</p>';return;}w.innerHTML='';reviews.forEach((r,i)=>{const vi=Math.min(Math.round(r.total),5);const d=document.createElement('div');d.className='hi';d.innerHTML=`<div><div style="font-weight:600;font-size:14px">${r.name}${r.level?` · <span style="font-size:11px;color:var(--text3)">${r.level}</span>`:''}</div><div style="font-size:12px;color:var(--text3);margin-top:2px">${r.month}${r.peerData?' · Коллеги: '+r.peerData.overall.toFixed(1):''}${r.hmData?' · HM: '+r.hmData.overall.toFixed(1):''}</div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div style="font-size:22px;font-weight:700;color:${VCOL[vi]||'var(--purple)'}">${r.total.toFixed(1)}</div><div style="font-size:11px;color:var(--text3)">${VERDICTS[vi]||''}</div></div><button class="btn" onclick="lastReview=reviews[${i}];renderResult(reviews[${i}])">↗ Открыть</button><button class="btn pdf" onclick="lastReview=reviews[${i}];exportPDF()">↓ PDF</button></div>`;w.appendChild(d);});}
+function goTab(tab){const tabs=['form','peer','hm','result','history'];document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+tab).classList.add('active');if(tab==='history')renderHistory();}
+initMeet();initVac();initConv();initSoft();initPeer();initHM();recalcTTF();recalcComm();initSupabase();
+</script>
+</body>
+</html>
